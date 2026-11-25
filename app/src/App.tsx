@@ -530,8 +530,10 @@ function HistoryPage({ onOpenDay }: { onOpenDay: (k: string) => void }) {
     <Page>
       <Navbar large transparent centerTitle={false} className="mx-auto max-w-[600px]" title="History" />
       <div className="mx-auto w-full max-w-[600px]">
+      {!!store.exercises.length && <StreakPill />}
       {days.map((k, i) => {
         const rest = store.isRest(k)
+        const complete = store.dayComplete(k)
         const rows = [
           ...store.exercises.map((ex) => ({ id: ex.id, name: ex.name, color: ex.color, unit: ex.unit, goal: store.goalOn(k, ex), total: store.totalFor(k, ex.id) })),
           ...store.removedOn(k).map((g) => ({ id: g.id, name: g.name, color: g.color, unit: g.unit, goal: g.goal, total: store.totalFor(k, g.id) })),
@@ -542,6 +544,12 @@ function HistoryPage({ onOpenDay }: { onOpenDay: (k: string) => void }) {
             <div className="mx-4 mt-6 mb-1.5 flex items-center gap-2 px-4">
               <h3 className="m-0 flex-1 text-[13px] font-medium tracking-wide text-label-2 uppercase">{dayLabel(k)}{i > 1 ? "" : ` · ${keyToDate(k).toLocaleDateString([], { month: "short", day: "numeric" })}`}</h3>
               {rest && <span className="rounded-full px-2 py-0.5 text-[12px] font-semibold" style={{ background: tint("blue", 16), color: ink("blue") }}>Rest day</span>}
+              {complete && (
+                <span className="inline-flex items-center gap-0.5 rounded-full py-0.5 pr-2 pl-1 text-[12px] font-semibold"
+                  style={{ background: "color-mix(in srgb, var(--streak) 18%, transparent)", color: "var(--streak-ink)" }}>
+                  <span className="[&>svg]:size-3.5"><IconFlame /></span>All done
+                </span>
+              )}
               <button type="button" className="text-[15px] text-primary active:opacity-60" onClick={() => onOpenDay(k)} aria-label={`Edit ${dayLabel(k)}`}>Edit</button>
             </div>
             <List strong inset className="!my-0">
