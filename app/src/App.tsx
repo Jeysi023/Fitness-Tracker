@@ -9,7 +9,7 @@ import { AnimatedCircularProgressBar } from "@/components/magicui/animated-circu
 import { BlurFade } from "@/components/magicui/blur-fade"
 import { Confetti, type ConfettiRef } from "@/components/magicui/confetti"
 import {
-  store, todayKey, shiftKey, dayLabel, longDate, fmtTime, unitWord, keyToDate,
+  store, todayKey, shiftKey, dayLabel, longDate, fmtTime, unitWord, keyToDate, nextResetTime,
   PLATES, PLATE_NAMES, WEEK, WD_LONG, MAX_BACK_DAYS, DEFAULT_QUICK, type Exercise, type Plate, type Unit, type ParsedBackup,
 } from "@/lib/store"
 
@@ -67,11 +67,12 @@ export default function DailyReps() {
     return () => { clearInterval(id); document.removeEventListener("visibilitychange", vis) }
   }, [])
 
-  function celebrate(ex: Exercise, r: { allDone: boolean; total: number; goal: number }) {
+  function celebrate(ex: Exercise, r: { allDone: boolean; dayDone: boolean; streak: number; total: number; goal: number }) {
     const when = selectedKey === todayKey() ? "today" : dayLabel(selectedKey).toLowerCase()
+    const streakText = r.dayDone && r.streak > 0 ? ` ${r.streak}-day streak.` : ""
     setNotice(r.allDone
-      ? { title: "All goals done", text: `Every exercise finished for ${when}.` }
-      : { title: "Goal hit", text: `${ex.name} · ${r.total} / ${r.goal} ${unitWord(ex.unit, r.goal)}` })
+      ? { title: "All goals done", text: `Every exercise finished for ${when}.${streakText}` }
+      : { title: "Goal hit", text: `${ex.name} · ${r.total} / ${r.goal} ${unitWord(ex.unit, r.goal)}${streakText ? ` ·${streakText}` : ""}` })
     if (noticeTimer.current) clearTimeout(noticeTimer.current)
     noticeTimer.current = setTimeout(() => setNotice(null), 3500)
     if (reducedMotion()) return
@@ -174,13 +175,15 @@ function LogPage(props: {
         </button>
         <div className="min-w-0 flex-1 text-center">
           <div className="text-[15px] font-semibold">{longDate(k)}</div>
-          <div className="text-[13px] text-label-2">{rest ? "Rest day · no goal" : k === t ? "Counts reset at midnight" : "Past day"}</div>
+          <div className="text-[13px] text-label-2">{rest ? "Rest day · no goal" : k === t ? `Resets ${fmtTime(nextResetTime())} · midnight in Texas` : "Past day"}</div>
         </div>
         <button type="button" aria-label="Next day" disabled={!canFwd} onClick={() => setK(shiftKey(k, 1))}
           className="grid size-11 shrink-0 place-items-center rounded-full bg-fill-3 text-primary active:opacity-60 disabled:opacity-30">
           <IconChevron dir="right" />
         </button>
       </div>
+
+      {k === t && !!exs.length && <StreakPill />}
 
       {k !== t && (
         <div className="mx-4 mt-3 flex items-center justify-between gap-3 rounded-2xl px-4 py-2.5 text-[15px]" style={{ background: tint("yellow", 22) }}>
@@ -210,6 +213,43 @@ function LogPage(props: {
       </div>
       <div className="h-36" />
     </Page>
+  )
+}
+
+const IconFlame = () => (
+  <svg viewBox="0 0 24 24" className="size-5" fill="currentColor" aria-hidden="true">
+    <path d="M12 2c.6 3.2-1.1 5.1-2.7 6.9C7.8 10.6 6.5 12.1 6.5 14.5a5.5 5.5 0 0 0 11 0c0-2-.9-3.6-1.9-4.8-.2 1.3-.9 2.3-2 2.8.5-3.6-.4-7.5-1.6-10.5Z" />
+  </svg>
+)
+
+function StreakPill() {
+  const t = todayKey()
+  const n = store.streak
+  const todayDone = store.dayComplete(t)
+  const rest = store.isRest(t)
+  const hint = rest
+    ? "Rest day · streak is safe"
+    : todayDone
+      ? "Today's done"
+      : n > 0 ? `Finish every goal today to make it ${n + 1}` : "Finish every goal today to start one"
+  return (
+    <div className="mx-4 mt-3 flex items-center gap-3 rounded-2xl px-4 py-2.5" role="status"
+      style={{ background: "color-mix(in srgb, var(--streak) 16%, transparent)" }}>
+      <span className="grid size-9 shrink-0 place-items-center rounded-full text-white" style={{ background: n > 0 ? "var(--streak)" : "var(--fill-3)" }}>
+        <IconFlame />
+      </span>
+      <div className="min-w-0 flex-1 leading-tight">
+        <div className="tabular text-[17px] font-semibold" style={{ color: n > 0 ? "var(--streak-ink)" : undefined }}>
+          {n > 0 ? `${n}-day streak` : "No streak yet"}
+        </div>
+        <div className="text-[13px] text-label-2">{hint}</div>
+      </div>
+      {todayDone && (
+        <span className="grid size-7 shrink-0 place-items-center rounded-full text-white" style={{ background: col("green") }} aria-hidden="true">
+          <Svg className="size-4"><path d="M5 12l4 4 10-10" /></Svg>
+        </span>
+      )}
+    </div>
   )
 }
 

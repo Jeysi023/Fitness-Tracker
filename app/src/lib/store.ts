@@ -25,12 +25,34 @@ const ID_RE = /^[a-z0-9]{4,32}$/;
 export function newId() {
   return (Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-5)).replace(/[^a-z0-9]/g, "x");
 }
-export function todayKey(d?: Date) {
-  d = d || new Date();
+/* The day rolls over at midnight US Central time (Texas), whatever time zone the phone is in.
+   "America/Chicago" follows Texas clocks, including daylight saving. Set times still show on the phone's own clock. */
+export const DAY_TIME_ZONE = "America/Chicago";
+let dayFmt: Intl.DateTimeFormat | null = null;
+/* The calendar date (YYYY-MM-DD) in Texas right now, or at time `at`. */
+export function todayKey(at?: number) {
+  try {
+    dayFmt = dayFmt || new Intl.DateTimeFormat("en-CA", { timeZone: DAY_TIME_ZONE, year: "numeric", month: "2-digit", day: "2-digit" });
+    const p = Object.fromEntries(dayFmt.formatToParts(at === undefined ? new Date() : new Date(at)).map((x) => [x.type, x.value]));
+    return `${p.year}-${p.month}-${p.day}`;
+  } catch {
+    return dateKey(at === undefined ? new Date() : new Date(at));
+  }
+}
+/* A local calendar Date to its YYYY-MM-DD key (calendar arithmetic only, no time zone). */
+function dateKey(d: Date) {
   return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
 }
+/* When the current day ends (next midnight in Texas), as a timestamp, so it can be shown on the phone's clock. */
+export function nextResetTime(now = Date.now()) {
+  const k = todayKey(now);
+  let t = now - (now % 60000);
+  for (let i = 0; i < 26 && todayKey(t + 3600000) === k; i++) t += 3600000;
+  for (let i = 0; i < 61 && todayKey(t) === k; i++) t += 60000;
+  return t;
+}
 export function keyToDate(k: string) { const p = k.split("-").map(Number); return new Date(p[0], p[1] - 1, p[2]); }
-export function shiftKey(k: string, days: number) { const d = keyToDate(k); d.setDate(d.getDate() + days); return todayKey(d); }
+export function shiftKey(k: string, days: number) { const d = keyToDate(k); d.setDate(d.getDate() + days); return dateKey(d); }
 export function longDate(k: string) { return keyToDate(k).toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" }); }
 export function dayLabel(k: string) {
   const t = todayKey();
@@ -167,6 +189,36 @@ class RepStore {
   }
   get loggedDayCount() { return Object.values(this.state.days).filter((d) => d.entries.length > 0).length; }
 
+  /* Every exercise hit its goal on day k. Today is judged against the current exercises.
+     A past day is judged against the exercises it had then (its goal snapshot), so adding an
+     exercise later never breaks old days; exercises you've since deleted are left out. */
+  dayComplete(k: string) {
+    if (this.isRest(k)) return false;
+    if (k === todayKey()) {
+      return this.exercises.length > 0 && this.exercises.every((e) => this.totalFor(k, e.id) >= e.goal);
+    }
+    const d = this.state.days[k];
+    if (!d || !d.entries.length) return false;
+    let ids = Object.keys(d.goals).filter((id) => this.findEx(id));
+    if (!ids.length) ids = Object.keys(d.goals);
+    return ids.length > 0 && ids.every((id) => this.totalFor(k, id) >= d.goals[id].goal);
+  }
+  /* Days in a row with every goal done. Rest days are skipped (they don't break it or add to it).
+     Today only counts once it's complete; an unfinished today doesn't break the streak yet. */
+  get streak() {
+    const t = todayKey();
+    const keys = Object.keys(this.state.days);
+    const earliest = keys.length ? keys.reduce((a, b) => (a < b ? a : b)) : t;
+    let n = this.dayComplete(t) ? 1 : 0;
+    let k = shiftKey(t, -1);
+    for (let i = 0; i < 3660 && k >= earliest; i++, k = shiftKey(k, -1)) {
+      if (this.isRest(k)) continue;
+      if (!this.dayComplete(k)) break;
+      n++;
+    }
+    return n;
+  }
+
   /* ----- writes ----- */
   private snap(ex: Exercise): GoalSnap { return { goal: ex.goal, name: ex.name, color: ex.color, unit: ex.unit }; }
   private ensureDay(k: string) {
@@ -193,8 +245,9 @@ class RepStore {
     if (this.persisted === null) this.requestPersist();
     const total = before + n;
     const crossed = !day.rest && before < goal && total >= goal;
-    const allDone = crossed && this.exercises.length > 1 && this.exercises.every((e) => this.totalFor(k, e.id) >= this.goalOn(k, e));
-    return { crossed, allDone, total, goal };
+    const dayDone = crossed && this.dayComplete(k);
+    const allDone = dayDone && this.exercises.length > 1;
+    return { crossed, allDone, dayDone, streak: dayDone ? this.streak : 0, total, goal };
   }
   undoLast(exId: string, k: string) {
     const day = this.state.days[k];
@@ -222,12 +275,18 @@ class RepStore {
       const t = todayKey();
       if (this.state.days[t]) this.state.days[t].goals[ex.id] = this.snap(ex);
     } else {
-      this.state.settings.exercises.push({ id: newId(), name, goal, unit: input.unit, color: input.color, quick: parseQuick(input.quick, input.unit) });
+      const ex: Exercise = { id: newId(), name, goal, unit: input.unit, color: input.color, quick: parseQuick(input.quick, input.unit) };
+      this.state.settings.exercises.push(ex);
+      /* keep today's snapshot in step, so today is judged the same way after midnight */
+      const today = this.state.days[todayKey()];
+      if (today) today.goals[ex.id] = this.snap(ex);
     }
     this.save();
   }
   deleteExercise(id: string) {
     this.state.settings.exercises = this.state.settings.exercises.filter((e) => e.id !== id);
+    const t = todayKey(), today = this.state.days[t];
+    if (today && !this.totalFor(t, id)) delete today.goals[id];
     this.save();
   }
   moveExercise(id: string, dir: -1 | 1) {

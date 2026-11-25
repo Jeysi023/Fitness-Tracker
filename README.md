@@ -1,6 +1,6 @@
 # Daily Reps
 
-A phone-first rep counter. Set a daily goal per exercise (for example 100 push-ups), log reps whenever you do them, and watch the ring fill to your goal. Counts reset at midnight.
+A phone-first rep counter. Set a daily goal per exercise (for example 100 push-ups), log reps whenever you do them, and watch the ring fill to your goal. The day resets at midnight US Central time (Texas), whatever time zone the phone is in; set times still show on the phone's own clock. Change `DAY_TIME_ZONE` in `app/src/lib/store.ts` to use another zone.
 
 Installs on an iPhone as a PWA (Safari → Share → Add to Home Screen), works offline, and keeps all data on the phone.
 
@@ -10,6 +10,7 @@ Installs on an iPhone as a PWA (Safari → Share → Add to Home Screen), works 
 - Your own quick buttons (for example +10, +15), plus any custom amount
 - Undo, and a list of each set with its time
 - Log for past days (up to 60 days back)
+- Streak of days with every goal done (rest days don't break it)
 - Rest days with no goal
 - Reorder exercises
 - Confetti and a banner when you hit a goal
