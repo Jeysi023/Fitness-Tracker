@@ -35,6 +35,7 @@ export default defineConfig({
       },
     }),
   ],
+  define: { __BUILD_TIME__: JSON.stringify(new Date().toISOString()) },
   resolve: { alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) } },
   build: { outDir: "dist", target: "es2020" },
 })

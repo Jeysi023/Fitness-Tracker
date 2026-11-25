@@ -631,6 +631,9 @@ function SettingsPage() {
       <BlockFooter>The top one shows first on the Log tab.</BlockFooter>
 
       <DataSection />
+      <p className="m-0 mt-6 text-center text-[13px] text-label-2">
+        Version {new Date(__BUILD_TIME__).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+      </p>
       </div>
       <div className="h-36" />
     </Page>
