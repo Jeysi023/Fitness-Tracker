@@ -11,7 +11,6 @@ export default defineConfig({
     VitePWA({
       registerType: "autoUpdate",
       injectRegister: false,
-      includeAssets: ["apple-touch-icon.png", "favicon-64.png"],
       manifest: {
         name: "Daily Reps",
         short_name: "Reps",
@@ -31,6 +30,7 @@ export default defineConfig({
       workbox: {
         globPatterns: ["**/*.{js,css,html,png,svg,ico,webmanifest}"],
         navigateFallback: "/index.html",
+        importScripts: ["sw-force-reload.js"],
         cleanupOutdatedCaches: true,
       },
     }),
