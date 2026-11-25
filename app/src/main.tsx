@@ -16,5 +16,16 @@ try { window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change
 
 createRoot(document.getElementById("root")!).render(<DailyReps />)
 
-/* Cache the app on the phone so it opens offline; new versions install in the background. */
-registerSW({ immediate: true })
+/* Cache the app on the phone so it opens offline; new versions install in the background.
+   A home-screen app on iPhone is usually resumed rather than reloaded, so also look for a new
+   version whenever it comes back to the screen (and every hour while open). When one is found,
+   the page reloads into it on its own. */
+registerSW({
+  immediate: true,
+  onRegisteredSW(_url, reg) {
+    if (!reg) return
+    const check = () => { if (!document.hidden && navigator.onLine) reg.update().catch(() => {}) }
+    document.addEventListener("visibilitychange", check)
+    setInterval(check, 60 * 60 * 1000)
+  },
+})
