@@ -31,6 +31,10 @@ export default defineConfig({
         globPatterns: ["**/*.{js,css,html,png,svg,ico,webmanifest}"],
         navigateFallback: "/index.html",
         importScripts: ["sw-force-reload.js"],
+        /* Take over from the old version straight away. vite-plugin-pwa only sets these for
+           autoUpdate when it injects the registration itself, and we register in main.tsx. */
+        skipWaiting: true,
+        clientsClaim: true,
         cleanupOutdatedCaches: true,
       },
     }),
