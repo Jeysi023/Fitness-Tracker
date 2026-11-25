@@ -1,0 +1,14 @@
+# dependencies and build output
+node_modules/
+app/dist/
+app/dev-dist/
+
+# local tool settings
+.claude/
+.vercel/
+.env*
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+*.log

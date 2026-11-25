@@ -1,0 +1,50 @@
+@import "tailwindcss";
+@import "konsta/react/theme.css";
+@source "./";
+
+/* Exercise colours follow the iOS system palette; "ink" is the readable text tone on a light tint. */
+:root {
+  --ex-red: #ff3b30;    --ex-red-ink: #d70015;
+  --ex-blue: #007aff;   --ex-blue-ink: #0040dd;
+  --ex-yellow: #ffcc00; --ex-yellow-ink: #a05a00;
+  --ex-green: #34c759;  --ex-green-ink: #248a3d;
+  --ex-gray: #8e8e93;   --ex-gray-ink: #6c6c70;
+  --app-bg: #f2f2f7;
+  --card-bg: #ffffff;
+  --label: #000000;
+  --label-2: rgb(60 60 67 / 0.6);
+  --fill-3: rgb(118 118 128 / 0.12);
+  color-scheme: light;
+}
+:root.dark {
+  --ex-red: #ff453a;    --ex-red-ink: #ff6961;
+  --ex-blue: #0a84ff;   --ex-blue-ink: #409cff;
+  --ex-yellow: #ffd60a; --ex-yellow-ink: #ffd426;
+  --ex-green: #30d158;  --ex-green-ink: #30db5b;
+  --ex-gray: #98989d;   --ex-gray-ink: #aeaeb2;
+  --app-bg: #000000;
+  --card-bg: #1c1c1e;
+  --label: #ffffff;
+  --label-2: rgb(235 235 245 / 0.6);
+  --fill-3: rgb(118 118 128 / 0.24);
+  color-scheme: dark;
+}
+
+html, body, #root { height: 100%; }
+body, .k-page, .k-sheet {
+  color: var(--label);
+}
+body {
+  margin: 0;
+  background: var(--app-bg);
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+}
+.tabular { font-variant-numeric: tabular-nums; }
+.text-label-2 { color: var(--label-2); }
+.bg-card { background: var(--card-bg); }
+.bg-fill-3 { background: var(--fill-3); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+}
